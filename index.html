@@ -2,94 +2,247 @@
 <html>
 <head>
 <title>Mini Unity Editor</title>
+
 <style>
 body {
   margin: 0;
-  display: flex;
-  height: 100vh;
+  font-family: Arial;
   background: #1e1e2f;
   color: white;
-  font-family: Arial;
 }
-#hierarchy {
-  width: 200px;
-  background: #2a2a40;
+
+/* MAIN MENU */
+#menu {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+button {
   padding: 10px;
+  margin: 10px;
+  font-size: 16px;
+  cursor: pointer;
 }
-#inspector {
-  width: 200px;
+
+/* EDITOR */
+#editor {
+  display: none;
+  height: 100vh;
+}
+
+#topbar {
   background: #2a2a40;
-  padding: 10px;
+  padding: 5px;
 }
+
+#layout {
+  display: flex;
+  height: calc(100% - 40px);
+}
+
 #scene {
   flex: 1;
 }
-button {
-  width: 100%;
-  margin-top: 5px;
-  padding: 5px;
+
+/* OBJECT PANEL */
+#objectsPanel {
+  width: 200px;
+  background: #2a2a40;
+  padding: 10px;
+  display: none;
+}
+
+/* PROJECT PANEL */
+#projectPanel {
+  width: 200px;
+  background: #1a1a2b;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+/* RIGHT CLICK MENU */
+#contextMenu {
+  position: absolute;
+  background: #2a2a40;
+  border: 1px solid #444;
+  display: none;
+  z-index: 1000;
+}
+
+#contextMenu div {
+  padding: 8px;
+  cursor: pointer;
+}
+
+#contextMenu div:hover {
+  background: #3a3a55;
 }
 </style>
 </head>
 
 <body>
 
-<div id="hierarchy">
-  <h3>Hierarchy</h3>
-  <button onclick="addCube()">Add Cube</button>
-  <div id="objects"></div>
+<!-- MAIN MENU -->
+<div id="menu">
+  <h1>Mini Engine</h1>
+  <button onclick="start3D()">3D</button>
+  <button onclick="start2D()">2D</button>
 </div>
 
-<div id="scene"></div>
+<!-- EDITOR -->
+<div id="editor">
+  <div id="topbar">
+    <button onclick="toggleObjects()">Objects</button>
+  </div>
 
-<div id="inspector">
-  <h3>Inspector</h3>
-  <div id="info">Select object</div>
+  <div id="layout">
+
+    <div id="projectPanel">
+      <h3>Project</h3>
+      <div id="assets"></div>
+    </div>
+
+    <div id="scene"></div>
+
+    <div id="objectsPanel">
+      <h3>Objects</h3>
+      <button onclick="addCube()">Cube</button>
+      <button onclick="addSphere()">Sphere</button>
+      <button onclick="addStairs()">Stairs</button>
+      <button onclick="addCircle()">Circle</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- RIGHT CLICK MENU -->
+<div id="contextMenu">
+  <div onclick="createItem('Script')">Create C# Script</div>
+  <div onclick="createItem('Material')">Create Material</div>
+  <div onclick="createItem('Folder')">Create Folder</div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.158/build/three.min.js"></script>
 
 <script>
-let scene = new THREE.Scene();
-let camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-let renderer = new THREE.WebGLRenderer();
+let scene, camera, renderer;
+let assetCount = 0;
 
-renderer.setSize(window.innerWidth - 400, window.innerHeight);
-document.getElementById("scene").appendChild(renderer.domElement);
+/* START */
+function start3D() {
+  document.getElementById("menu").style.display = "none";
+  document.getElementById("editor").style.display = "block";
+  init3D();
+}
 
-camera.position.z = 5;
+function start2D() {
+  alert("2D mode not built yet 😅");
+}
 
-let objects = [];
-let selected = null;
+/* INIT */
+function init3D() {
+  scene = new THREE.Scene();
 
+  camera = new THREE.PerspectiveCamera(
+    75,
+    (window.innerWidth - 400) / (window.innerHeight - 40),
+    0.1,
+    1000
+  );
+
+  renderer = new THREE.WebGLRenderer();
+  renderer.setSize(window.innerWidth - 400, window.innerHeight - 40);
+  document.getElementById("scene").appendChild(renderer.domElement);
+
+  camera.position.z = 5;
+
+  let light = new THREE.DirectionalLight(0xffffff, 1);
+  light.position.set(5,5,5);
+  scene.add(light);
+
+  let ambient = new THREE.AmbientLight(0x404040);
+  scene.add(ambient);
+
+  animate();
+}
+
+/* OBJECT PANEL */
+function toggleObjects() {
+  let panel = document.getElementById("objectsPanel");
+  panel.style.display = panel.style.display === "none" ? "block" : "none";
+}
+
+/* OBJECTS */
 function addCube() {
-  let geometry = new THREE.BoxGeometry();
-  let material = new THREE.MeshBasicMaterial({ color: Math.random() * 0xffffff });
-  let cube = new THREE.Mesh(geometry, material);
-  
-  scene.add(cube);
-  objects.push(cube);
+  let geo = new THREE.BoxGeometry();
+  let mat = new THREE.MeshStandardMaterial({ color: 0x808080 });
+  let mesh = new THREE.Mesh(geo, mat);
+  scene.add(mesh);
+}
+
+function addSphere() {
+  let geo = new THREE.SphereGeometry(0.5, 32, 32);
+  let mat = new THREE.MeshStandardMaterial({ color: 0x808080 });
+  let mesh = new THREE.Mesh(geo, mat);
+  scene.add(mesh);
+}
+
+function addStairs() {
+  for (let i = 0; i < 5; i++) {
+    let geo = new THREE.BoxGeometry(1, 0.2, 1);
+    let mat = new THREE.MeshStandardMaterial({ color: 0x808080 });
+    let step = new THREE.Mesh(geo, mat);
+    step.position.y = i * 0.2;
+    step.position.z = i * -1;
+    scene.add(step);
+  }
+}
+
+function addCircle() {
+  let geo = new THREE.CircleGeometry(1, 32);
+  let mat = new THREE.MeshStandardMaterial({ color: 0x808080 });
+  let mesh = new THREE.Mesh(geo, mat);
+  scene.add(mesh);
+}
+
+/* RIGHT CLICK MENU */
+document.addEventListener("contextmenu", function(e) {
+  e.preventDefault();
+
+  let menu = document.getElementById("contextMenu");
+  menu.style.display = "block";
+  menu.style.left = e.pageX + "px";
+  menu.style.top = e.pageY + "px";
+});
+
+/* HIDE MENU */
+document.addEventListener("click", function() {
+  document.getElementById("contextMenu").style.display = "none";
+});
+
+/* CREATE ITEMS */
+function createItem(type) {
+  assetCount++;
 
   let div = document.createElement("div");
-  div.innerText = "Cube " + objects.length;
-  div.onclick = () => selectObject(cube);
-  document.getElementById("objects").appendChild(div);
+  div.innerText = type + " " + assetCount;
+
+  if(type === "Script") div.innerText += ".cs";
+  if(type === "Material") div.innerText += ".mat";
+
+  document.getElementById("assets").appendChild(div);
 }
 
-function selectObject(obj) {
-  selected = obj;
-  document.getElementById("info").innerText =
-    "Position: " + obj.position.x.toFixed(2) + ", " +
-    obj.position.y.toFixed(2) + ", " +
-    obj.position.z.toFixed(2);
-}
-
+/* LOOP */
 function animate() {
   requestAnimationFrame(animate);
-  if (selected) selected.rotation.y += 0.01;
   renderer.render(scene, camera);
 }
-animate();
 </script>
 
 </body>
