@@ -9,9 +9,9 @@ body {
   font-family: Arial;
   background: #1e1e2f;
   color: white;
+  overflow: hidden;
 }
 
-/* MAIN MENU */
 #menu {
   position: absolute;
   width: 100%;
@@ -29,7 +29,6 @@ button {
   cursor: pointer;
 }
 
-/* EDITOR */
 #editor {
   display: none;
   height: 100vh;
@@ -49,7 +48,6 @@ button {
   flex: 1;
 }
 
-/* OBJECT PANEL */
 #objectsPanel {
   width: 200px;
   background: #2a2a40;
@@ -57,7 +55,6 @@ button {
   display: none;
 }
 
-/* PROJECT PANEL */
 #projectPanel {
   width: 200px;
   background: #1a1a2b;
@@ -65,7 +62,6 @@ button {
   overflow-y: auto;
 }
 
-/* RIGHT CLICK MENU */
 #contextMenu {
   position: absolute;
   background: #2a2a40;
@@ -87,14 +83,12 @@ button {
 
 <body>
 
-<!-- MAIN MENU -->
 <div id="menu">
   <h1>Mini Engine</h1>
   <button onclick="start3D()">3D</button>
   <button onclick="start2D()">2D</button>
 </div>
 
-<!-- EDITOR -->
 <div id="editor">
   <div id="topbar">
     <button onclick="toggleObjects()">Objects</button>
@@ -120,7 +114,6 @@ button {
   </div>
 </div>
 
-<!-- RIGHT CLICK MENU -->
 <div id="contextMenu">
   <div onclick="createItem('Script')">Create C# Script</div>
   <div onclick="createItem('Material')">Create Material</div>
@@ -133,6 +126,11 @@ button {
 let scene, camera, renderer;
 let assetCount = 0;
 
+/* CAMERA */
+let keys = {};
+let yaw = 0, pitch = 0;
+let isLooking = false;
+
 /* START */
 function start3D() {
   document.getElementById("menu").style.display = "none";
@@ -141,7 +139,7 @@ function start3D() {
 }
 
 function start2D() {
-  alert("2D mode not built yet 😅");
+  alert("2D not built yet");
 }
 
 /* INIT */
@@ -159,7 +157,7 @@ function init3D() {
   renderer.setSize(window.innerWidth - 400, window.innerHeight - 40);
   document.getElementById("scene").appendChild(renderer.domElement);
 
-  camera.position.z = 5;
+  camera.position.set(0, 1, 5);
 
   let light = new THREE.DirectionalLight(0xffffff, 1);
   light.position.set(5,5,5);
@@ -181,15 +179,13 @@ function toggleObjects() {
 function addCube() {
   let geo = new THREE.BoxGeometry();
   let mat = new THREE.MeshStandardMaterial({ color: 0x808080 });
-  let mesh = new THREE.Mesh(geo, mat);
-  scene.add(mesh);
+  scene.add(new THREE.Mesh(geo, mat));
 }
 
 function addSphere() {
   let geo = new THREE.SphereGeometry(0.5, 32, 32);
   let mat = new THREE.MeshStandardMaterial({ color: 0x808080 });
-  let mesh = new THREE.Mesh(geo, mat);
-  scene.add(mesh);
+  scene.add(new THREE.Mesh(geo, mat));
 }
 
 function addStairs() {
@@ -206,11 +202,10 @@ function addStairs() {
 function addCircle() {
   let geo = new THREE.CircleGeometry(1, 32);
   let mat = new THREE.MeshStandardMaterial({ color: 0x808080 });
-  let mesh = new THREE.Mesh(geo, mat);
-  scene.add(mesh);
+  scene.add(new THREE.Mesh(geo, mat));
 }
 
-/* RIGHT CLICK MENU */
+/* RIGHT CLICK ONLY = MENU */
 document.addEventListener("contextmenu", function(e) {
   e.preventDefault();
 
@@ -220,9 +215,11 @@ document.addEventListener("contextmenu", function(e) {
   menu.style.top = e.pageY + "px";
 });
 
-/* HIDE MENU */
-document.addEventListener("click", function() {
-  document.getElementById("contextMenu").style.display = "none";
+/* LEFT CLICK = CLOSE MENU ONLY */
+document.addEventListener("mousedown", function(e) {
+  if (e.button === 0) {
+    document.getElementById("contextMenu").style.display = "none";
+  }
 });
 
 /* CREATE ITEMS */
@@ -238,9 +235,34 @@ function createItem(type) {
   document.getElementById("assets").appendChild(div);
 }
 
+/* CAMERA CONTROLS (SHIFT + MOUSE LOOK) */
+document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
+document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+
+document.addEventListener("mousemove", e => {
+  if (!keys["shift"]) return;
+
+  yaw -= e.movementX * 0.002;
+  pitch -= e.movementY * 0.002;
+
+  camera.rotation.order = "YXZ";
+  camera.rotation.y = yaw;
+  camera.rotation.x = pitch;
+});
+
+function updateMovement() {
+  let speed = 0.1;
+
+  if (keys["w"]) camera.translateZ(-speed);
+  if (keys["s"]) camera.translateZ(speed);
+  if (keys["a"]) camera.translateX(-speed);
+  if (keys["d"]) camera.translateX(speed);
+}
+
 /* LOOP */
 function animate() {
   requestAnimationFrame(animate);
+  updateMovement();
   renderer.render(scene, camera);
 }
 </script>
