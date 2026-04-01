@@ -16,67 +16,82 @@ body {
   position: absolute;
   width: 100%;
   height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
 }
 
 button {
-  padding: 10px;
-  margin: 10px;
-  font-size: 16px;
-  cursor: pointer;
+  padding:10px;
+  margin:10px;
+  cursor:pointer;
 }
 
-#editor {
-  display: none;
-  height: 100vh;
-}
+/* EDITOR */
+#editor { display:none; height:100vh; }
 
 #topbar {
-  background: #2a2a40;
-  padding: 5px;
+  background:#2a2a40;
+  padding:5px;
 }
 
 #layout {
-  display: flex;
-  height: calc(100% - 40px);
+  display:flex;
+  height:calc(100% - 40px);
 }
 
-#scene {
-  flex: 1;
-}
+#scene { flex:1; }
 
+/* PANELS */
 #objectsPanel {
-  width: 200px;
-  background: #2a2a40;
-  padding: 10px;
-  display: none;
+  width:200px;
+  background:#2a2a40;
+  padding:10px;
+  display:none;
 }
 
 #projectPanel {
-  width: 200px;
-  background: #1a1a2b;
-  padding: 10px;
-  overflow-y: auto;
+  width:200px;
+  background:#1a1a2b;
+  padding:10px;
+  overflow-y:auto;
 }
 
+/* SCRIPT EDITOR */
+#scriptEditor {
+  position:absolute;
+  bottom:0;
+  width:100%;
+  height:200px;
+  background:#111;
+  display:none;
+}
+
+#scriptEditor textarea {
+  width:100%;
+  height:100%;
+  background:#111;
+  color:#0f0;
+  border:none;
+  resize:none;
+  font-family:monospace;
+}
+
+/* MENU */
 #contextMenu {
-  position: absolute;
-  background: #2a2a40;
-  border: 1px solid #444;
-  display: none;
-  z-index: 1000;
+  position:absolute;
+  background:#2a2a40;
+  border:1px solid #444;
+  display:none;
 }
 
 #contextMenu div {
-  padding: 8px;
-  cursor: pointer;
+  padding:8px;
+  cursor:pointer;
 }
-
 #contextMenu div:hover {
-  background: #3a3a55;
+  background:#3a3a55;
 }
 </style>
 </head>
@@ -86,7 +101,6 @@ button {
 <div id="menu">
   <h1>Mini Engine</h1>
   <button onclick="start3D()">3D</button>
-  <button onclick="start2D()">2D</button>
 </div>
 
 <div id="editor">
@@ -107,11 +121,13 @@ button {
       <h3>Objects</h3>
       <button onclick="addCube()">Cube</button>
       <button onclick="addSphere()">Sphere</button>
-      <button onclick="addStairs()">Stairs</button>
-      <button onclick="addCircle()">Circle</button>
     </div>
 
   </div>
+</div>
+
+<div id="scriptEditor">
+  <textarea id="code"></textarea>
 </div>
 
 <div id="contextMenu">
@@ -123,149 +139,152 @@ button {
 <script src="https://cdn.jsdelivr.net/npm/three@0.158/build/three.min.js"></script>
 
 <script>
-let scene, camera, renderer;
-let assetCount = 0;
-
-let keys = {};
-let yaw = 0, pitch = 0;
+let scene,camera,renderer;
+let assetCount=0;
+let keys={};
+let yaw=0,pitch=0;
+let rightDown=false;
+let startX=0,startY=0;
+let moved=false;
 
 /* START */
-function start3D() {
-  document.getElementById("menu").style.display = "none";
-  document.getElementById("editor").style.display = "block";
+function start3D(){
+  menu.style.display="none";
+  editor.style.display="block";
   init3D();
 }
 
-function start2D() {
-  alert("2D not built yet");
-}
+/* 3D */
+function init3D(){
+  scene=new THREE.Scene();
+  scene.background=new THREE.Color(0x202030);
 
-/* INIT REAL 3D */
-function init3D() {
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x202030);
+  camera=new THREE.PerspectiveCamera(75,(window.innerWidth-400)/(window.innerHeight-40),0.1,1000);
 
-  camera = new THREE.PerspectiveCamera(
-    75,
-    (window.innerWidth - 400) / (window.innerHeight - 40),
-    0.1,
-    1000
-  );
+  renderer=new THREE.WebGLRenderer({antialias:true});
+  renderer.setSize(window.innerWidth-400,window.innerHeight-40);
+  renderer.shadowMap.enabled=true;
 
-  renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize(window.innerWidth - 400, window.innerHeight - 40);
-  renderer.shadowMap.enabled = true;
+  sceneEl.appendChild(renderer.domElement);
 
-  document.getElementById("scene").appendChild(renderer.domElement);
+  camera.position.set(0,2,5);
 
-  camera.position.set(0, 2, 5);
-
-  let light = new THREE.DirectionalLight(0xffffff, 1);
+  let light=new THREE.DirectionalLight(0xffffff,1);
   light.position.set(5,10,5);
-  light.castShadow = true;
+  light.castShadow=true;
   scene.add(light);
 
   scene.add(new THREE.AmbientLight(0x404040));
 
-  let ground = new THREE.Mesh(
+  let ground=new THREE.Mesh(
     new THREE.PlaneGeometry(50,50),
-    new THREE.MeshStandardMaterial({ color: 0x222222 })
+    new THREE.MeshStandardMaterial({color:0x222222})
   );
-  ground.rotation.x = -Math.PI / 2;
-  ground.receiveShadow = true;
+  ground.rotation.x=-Math.PI/2;
   scene.add(ground);
 
-  let grid = new THREE.GridHelper(50, 50);
-  scene.add(grid);
+  scene.add(new THREE.GridHelper(50,50));
 
   animate();
 }
 
 /* OBJECTS */
-function addCube() {
-  let m = new THREE.Mesh(
+function addCube(){
+  let m=new THREE.Mesh(
     new THREE.BoxGeometry(),
-    new THREE.MeshStandardMaterial({ color: 0x808080 })
+    new THREE.MeshStandardMaterial({color:0x808080})
   );
-  m.position.y = 0.5;
-  m.castShadow = true;
+  m.position.y=0.5;
   scene.add(m);
 }
 
-function addSphere() {
-  let m = new THREE.Mesh(
+function addSphere(){
+  let m=new THREE.Mesh(
     new THREE.SphereGeometry(0.5,32,32),
-    new THREE.MeshStandardMaterial({ color: 0x808080 })
+    new THREE.MeshStandardMaterial({color:0x808080})
   );
-  m.position.y = 0.5;
-  m.castShadow = true;
-  scene.add(m);
-}
-
-function addStairs() {
-  for(let i=0;i<5;i++){
-    let s = new THREE.Mesh(
-      new THREE.BoxGeometry(1,0.2,1),
-      new THREE.MeshStandardMaterial({ color: 0x808080 })
-    );
-    s.position.y=i*0.2;
-    s.position.z=i*-1;
-    s.castShadow=true;
-    scene.add(s);
-  }
-}
-
-function addCircle() {
-  let m = new THREE.Mesh(
-    new THREE.CircleGeometry(1,32),
-    new THREE.MeshStandardMaterial({ color: 0x808080 })
-  );
-  m.rotation.x = -Math.PI/2;
+  m.position.y=0.5;
   scene.add(m);
 }
 
 /* PANELS */
-function toggleObjects() {
-  let p = document.getElementById("objectsPanel");
-  p.style.display = p.style.display==="none"?"block":"none";
+function toggleObjects(){
+  objectsPanel.style.display=objectsPanel.style.display==="none"?"block":"none";
 }
 
-/* RIGHT CLICK MENU */
-document.addEventListener("contextmenu", e=>{
-  e.preventDefault();
-  let m = document.getElementById("contextMenu");
-  m.style.display="block";
-  m.style.left=e.pageX+"px";
-  m.style.top=e.pageY+"px";
+/* RIGHT CLICK LOGIC */
+document.addEventListener("mousedown",e=>{
+  if(e.button===2){
+    rightDown=true;
+    moved=false;
+    startX=e.clientX;
+    startY=e.clientY;
+  }
 });
 
-/* LEFT CLICK CLOSE */
-document.addEventListener("mousedown", e=>{
-  if(e.button===0){
-    document.getElementById("contextMenu").style.display="none";
+document.addEventListener("mouseup",e=>{
+  if(e.button===2){
+    rightDown=false;
+
+    if(!moved){
+      let m=contextMenu;
+      m.style.display="block";
+      m.style.left=e.pageX+"px";
+      m.style.top=e.pageY+"px";
+    }
   }
+});
+
+document.addEventListener("mousemove",e=>{
+  if(!rightDown) return;
+
+  if(Math.abs(e.clientX-startX)>5 || Math.abs(e.clientY-startY)>5){
+    moved=true;
+  }
+
+  if(moved){
+    yaw-=e.movementX*0.002;
+    pitch-=e.movementY*0.002;
+    camera.rotation.order="YXZ";
+    camera.rotation.y=yaw;
+    camera.rotation.x=pitch;
+  }
+});
+
+document.addEventListener("contextmenu",e=>e.preventDefault());
+
+/* LEFT CLICK CLOSE */
+document.addEventListener("click",()=>{
+  contextMenu.style.display="none";
 });
 
 /* CREATE */
 function createItem(type){
   assetCount++;
-  let d=document.createElement("div");
-  d.innerText=type+" "+assetCount+(type==="Script"?".cs":type==="Material"?".mat":"");
-  document.getElementById("assets").appendChild(d);
+
+  let div=document.createElement("div");
+  div.innerText=type+" "+assetCount+(type==="Script"?".cs":type==="Material"?".mat":"");
+
+  /* DOUBLE CLICK = RENAME */
+  div.ondblclick=()=>{
+    let name=prompt("Rename:",div.innerText);
+    if(name) div.innerText=name;
+  };
+
+  /* OPEN SCRIPT */
+  if(type==="Script"){
+    div.onclick=()=>{
+      scriptEditor.style.display="block";
+      code.value="// C# script\n\nusing UnityEngine;\n\npublic class NewScript {\n\n}";
+    };
+  }
+
+  assets.appendChild(div);
 }
 
-/* CAMERA */
-document.addEventListener("keydown", e=>keys[e.key.toLowerCase()]=true);
-document.addEventListener("keyup", e=>keys[e.key.toLowerCase()]=false);
-
-document.addEventListener("mousemove", e=>{
-  if(!keys["shift"]) return;
-  yaw -= e.movementX*0.002;
-  pitch -= e.movementY*0.002;
-  camera.rotation.order="YXZ";
-  camera.rotation.y=yaw;
-  camera.rotation.x=pitch;
-});
+/* MOVE */
+document.addEventListener("keydown",e=>keys[e.key.toLowerCase()]=true);
+document.addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
 
 function move(){
   let s=0.1;
@@ -281,6 +300,16 @@ function animate(){
   move();
   renderer.render(scene,camera);
 }
+
+/* FIX ELEMENT REFS */
+const menu=document.getElementById("menu");
+const editor=document.getElementById("editor");
+const sceneEl=document.getElementById("scene");
+const objectsPanel=document.getElementById("objectsPanel");
+const contextMenu=document.getElementById("contextMenu");
+const assets=document.getElementById("assets");
+const scriptEditor=document.getElementById("scriptEditor");
+const code=document.getElementById("code");
 </script>
 
 </body>
