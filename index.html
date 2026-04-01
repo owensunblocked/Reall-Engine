@@ -126,10 +126,8 @@ button {
 let scene, camera, renderer;
 let assetCount = 0;
 
-/* CAMERA */
 let keys = {};
 let yaw = 0, pitch = 0;
-let isLooking = false;
 
 /* START */
 function start3D() {
@@ -142,9 +140,10 @@ function start2D() {
   alert("2D not built yet");
 }
 
-/* INIT */
+/* INIT REAL 3D */
 function init3D() {
   scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x202030);
 
   camera = new THREE.PerspectiveCamera(
     75,
@@ -153,117 +152,134 @@ function init3D() {
     1000
   );
 
-  renderer = new THREE.WebGLRenderer();
+  renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth - 400, window.innerHeight - 40);
+  renderer.shadowMap.enabled = true;
+
   document.getElementById("scene").appendChild(renderer.domElement);
 
-  camera.position.set(0, 1, 5);
+  camera.position.set(0, 2, 5);
 
   let light = new THREE.DirectionalLight(0xffffff, 1);
-  light.position.set(5,5,5);
+  light.position.set(5,10,5);
+  light.castShadow = true;
   scene.add(light);
 
-  let ambient = new THREE.AmbientLight(0x404040);
-  scene.add(ambient);
+  scene.add(new THREE.AmbientLight(0x404040));
+
+  let ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(50,50),
+    new THREE.MeshStandardMaterial({ color: 0x222222 })
+  );
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  let grid = new THREE.GridHelper(50, 50);
+  scene.add(grid);
 
   animate();
 }
 
-/* OBJECT PANEL */
-function toggleObjects() {
-  let panel = document.getElementById("objectsPanel");
-  panel.style.display = panel.style.display === "none" ? "block" : "none";
-}
-
 /* OBJECTS */
 function addCube() {
-  let geo = new THREE.BoxGeometry();
-  let mat = new THREE.MeshStandardMaterial({ color: 0x808080 });
-  scene.add(new THREE.Mesh(geo, mat));
+  let m = new THREE.Mesh(
+    new THREE.BoxGeometry(),
+    new THREE.MeshStandardMaterial({ color: 0x808080 })
+  );
+  m.position.y = 0.5;
+  m.castShadow = true;
+  scene.add(m);
 }
 
 function addSphere() {
-  let geo = new THREE.SphereGeometry(0.5, 32, 32);
-  let mat = new THREE.MeshStandardMaterial({ color: 0x808080 });
-  scene.add(new THREE.Mesh(geo, mat));
+  let m = new THREE.Mesh(
+    new THREE.SphereGeometry(0.5,32,32),
+    new THREE.MeshStandardMaterial({ color: 0x808080 })
+  );
+  m.position.y = 0.5;
+  m.castShadow = true;
+  scene.add(m);
 }
 
 function addStairs() {
-  for (let i = 0; i < 5; i++) {
-    let geo = new THREE.BoxGeometry(1, 0.2, 1);
-    let mat = new THREE.MeshStandardMaterial({ color: 0x808080 });
-    let step = new THREE.Mesh(geo, mat);
-    step.position.y = i * 0.2;
-    step.position.z = i * -1;
-    scene.add(step);
+  for(let i=0;i<5;i++){
+    let s = new THREE.Mesh(
+      new THREE.BoxGeometry(1,0.2,1),
+      new THREE.MeshStandardMaterial({ color: 0x808080 })
+    );
+    s.position.y=i*0.2;
+    s.position.z=i*-1;
+    s.castShadow=true;
+    scene.add(s);
   }
 }
 
 function addCircle() {
-  let geo = new THREE.CircleGeometry(1, 32);
-  let mat = new THREE.MeshStandardMaterial({ color: 0x808080 });
-  scene.add(new THREE.Mesh(geo, mat));
+  let m = new THREE.Mesh(
+    new THREE.CircleGeometry(1,32),
+    new THREE.MeshStandardMaterial({ color: 0x808080 })
+  );
+  m.rotation.x = -Math.PI/2;
+  scene.add(m);
 }
 
-/* RIGHT CLICK ONLY = MENU */
-document.addEventListener("contextmenu", function(e) {
-  e.preventDefault();
+/* PANELS */
+function toggleObjects() {
+  let p = document.getElementById("objectsPanel");
+  p.style.display = p.style.display==="none"?"block":"none";
+}
 
-  let menu = document.getElementById("contextMenu");
-  menu.style.display = "block";
-  menu.style.left = e.pageX + "px";
-  menu.style.top = e.pageY + "px";
+/* RIGHT CLICK MENU */
+document.addEventListener("contextmenu", e=>{
+  e.preventDefault();
+  let m = document.getElementById("contextMenu");
+  m.style.display="block";
+  m.style.left=e.pageX+"px";
+  m.style.top=e.pageY+"px";
 });
 
-/* LEFT CLICK = CLOSE MENU ONLY */
-document.addEventListener("mousedown", function(e) {
-  if (e.button === 0) {
-    document.getElementById("contextMenu").style.display = "none";
+/* LEFT CLICK CLOSE */
+document.addEventListener("mousedown", e=>{
+  if(e.button===0){
+    document.getElementById("contextMenu").style.display="none";
   }
 });
 
-/* CREATE ITEMS */
-function createItem(type) {
+/* CREATE */
+function createItem(type){
   assetCount++;
-
-  let div = document.createElement("div");
-  div.innerText = type + " " + assetCount;
-
-  if(type === "Script") div.innerText += ".cs";
-  if(type === "Material") div.innerText += ".mat";
-
-  document.getElementById("assets").appendChild(div);
+  let d=document.createElement("div");
+  d.innerText=type+" "+assetCount+(type==="Script"?".cs":type==="Material"?".mat":"");
+  document.getElementById("assets").appendChild(d);
 }
 
-/* CAMERA CONTROLS (SHIFT + MOUSE LOOK) */
-document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
-document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+/* CAMERA */
+document.addEventListener("keydown", e=>keys[e.key.toLowerCase()]=true);
+document.addEventListener("keyup", e=>keys[e.key.toLowerCase()]=false);
 
-document.addEventListener("mousemove", e => {
-  if (!keys["shift"]) return;
-
-  yaw -= e.movementX * 0.002;
-  pitch -= e.movementY * 0.002;
-
-  camera.rotation.order = "YXZ";
-  camera.rotation.y = yaw;
-  camera.rotation.x = pitch;
+document.addEventListener("mousemove", e=>{
+  if(!keys["shift"]) return;
+  yaw -= e.movementX*0.002;
+  pitch -= e.movementY*0.002;
+  camera.rotation.order="YXZ";
+  camera.rotation.y=yaw;
+  camera.rotation.x=pitch;
 });
 
-function updateMovement() {
-  let speed = 0.1;
-
-  if (keys["w"]) camera.translateZ(-speed);
-  if (keys["s"]) camera.translateZ(speed);
-  if (keys["a"]) camera.translateX(-speed);
-  if (keys["d"]) camera.translateX(speed);
+function move(){
+  let s=0.1;
+  if(keys["w"]) camera.translateZ(-s);
+  if(keys["s"]) camera.translateZ(s);
+  if(keys["a"]) camera.translateX(-s);
+  if(keys["d"]) camera.translateX(s);
 }
 
 /* LOOP */
-function animate() {
+function animate(){
   requestAnimationFrame(animate);
-  updateMovement();
-  renderer.render(scene, camera);
+  move();
+  renderer.render(scene,camera);
 }
 </script>
 
