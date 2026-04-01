@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Mini Unity Editor</title>
+<style>
+body {
+  margin: 0;
+  display: flex;
+  height: 100vh;
+  background: #1e1e2f;
+  color: white;
+  font-family: Arial;
+}
+#hierarchy {
+  width: 200px;
+  background: #2a2a40;
+  padding: 10px;
+}
+#inspector {
+  width: 200px;
+  background: #2a2a40;
+  padding: 10px;
+}
+#scene {
+  flex: 1;
+}
+button {
+  width: 100%;
+  margin-top: 5px;
+  padding: 5px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="hierarchy">
+  <h3>Hierarchy</h3>
+  <button onclick="addCube()">Add Cube</button>
+  <div id="objects"></div>
+</div>
+
+<div id="scene"></div>
+
+<div id="inspector">
+  <h3>Inspector</h3>
+  <div id="info">Select object</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.158/build/three.min.js"></script>
+
+<script>
+let scene = new THREE.Scene();
+let camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+let renderer = new THREE.WebGLRenderer();
+
+renderer.setSize(window.innerWidth - 400, window.innerHeight);
+document.getElementById("scene").appendChild(renderer.domElement);
+
+camera.position.z = 5;
+
+let objects = [];
+let selected = null;
+
+function addCube() {
+  let geometry = new THREE.BoxGeometry();
+  let material = new THREE.MeshBasicMaterial({ color: Math.random() * 0xffffff });
+  let cube = new THREE.Mesh(geometry, material);
+  
+  scene.add(cube);
+  objects.push(cube);
+
+  let div = document.createElement("div");
+  div.innerText = "Cube " + objects.length;
+  div.onclick = () => selectObject(cube);
+  document.getElementById("objects").appendChild(div);
+}
+
+function selectObject(obj) {
+  selected = obj;
+  document.getElementById("info").innerText =
+    "Position: " + obj.position.x.toFixed(2) + ", " +
+    obj.position.y.toFixed(2) + ", " +
+    obj.position.z.toFixed(2);
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  if (selected) selected.rotation.y += 0.01;
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+
+</body>
+</html>
